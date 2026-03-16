@@ -1,0 +1,19 @@
+{
+  "name": "expenditure-tracker-backend",
+  "version": "1.0.0",
+  "description": "Expenditure Tracker Backend",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Houchuan Dong",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
