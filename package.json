@@ -11,9 +11,13 @@
   "keywords": [],
   "author": "Houchuan Dong",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@types/node": "^25.5.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.11",
+    "hono": "^4.12.8"
   }
 }
