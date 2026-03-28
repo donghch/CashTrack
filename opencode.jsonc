@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    // Example local MCP server - runs a command
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    }, 
+    // Example remote MCP server - connects to a URL
+    "sequential-thinking": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"], 
+      "enabled": false
+    }
+  },
+  // Global tool permissions (optional)
+  "tools": {
+    // Enable or disable specific tools globally
+    // "example_local_*": true,
+    // "example_remote_*": false
+  },
+  // Agent-specific configurations (optional)
+  "agent": {
+    "default": {
+      "tools": {
+        // Enable specific MCP tools for this agent
+        // "example_local_*": true
+      }
+    }
+  }
+  // Custom tools are automatically loaded from .opencode/tools/
+  // See https://opencode.ai/docs/custom-tools for details.
+}
