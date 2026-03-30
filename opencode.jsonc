@@ -1,34 +1,57 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    // Example local MCP server - runs a command
     "context7": {
       "type": "local",
       "command": ["npx", "-y", "@upstash/context7-mcp"],
       "enabled": true
-    }, 
-    // Example remote MCP server - connects to a URL
+    },
     "sequential-thinking": {
       "type": "local",
       "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"], 
       "enabled": false
+    },
+    "context-mode": {
+      "type": "local",
+      "command": ["context-mode"],
+      "enabled": true
     }
   },
-  // Global tool permissions (optional)
-  "tools": {
-    // Enable or disable specific tools globally
-    // "example_local_*": true,
-    // "example_remote_*": false
-  },
-  // Agent-specific configurations (optional)
   "agent": {
-    "default": {
-      "tools": {
-        // Enable specific MCP tools for this agent
-        // "example_local_*": true
+    "software-architect": {
+      "model": "deepseek-reasoner",
+      "mode": "subagent",
+      "provider": "deepseek",
+      "temperature": 0.7,
+      "prompt": "You are the Lead Software Architect. Your role is to analyze complex requirements and design scalable, modular, and maintainable system architectures. You prioritize architectural integrity, design patterns, and long-term tech debt over quick fixes. When presented with a task, reason through the structural implications, define the component interfaces, and provide high-level blueprints. You oversee the 'code-writer' subagent to ensure its output aligns with your technical vision.",
+      "permissions": {
+        "edit": "deny",
+        "write": "deny",
+        "bash": "deny"
+      }
+    },
+    "code-writer": {
+      "model": "openai/gpt-5.4-mini",
+      "mode": "subagent",
+      "provider": "openrouter",
+      "temperature": 0.4,
+      "prompt": "You are a specialized Code-Writer Subagent. Your sole purpose is to implement specific features and fixes by reading, writing, and editing files. You follow the 'software-architect''s designs strictly. You are a scribe, not an operator: you have access to the file system but are strictly forbidden from executing commands or scripts. Focus on clean syntax, idiomatic code, and project consistency.",
+      "permissions": {
+        "bash": "deny"
+      }
+    },
+    "code-explorer": {
+      "model": "openai/gpt-5.4-nano",
+      "mode": "subagent",
+      "provider": "openrouter",
+      "temperature": 0.2,
+      "prompt": "You are an expert Code Explorer. Your role is to navigate the codebase, map out dependencies, and explain how existing logic works. When asked to find a function or explain a module, read the relevant files and provide a concise overview. You are an observer: you have read access but are strictly forbidden from writing, editing, or executing anything. Your goal is clarity and discovery.",
+      "permissions": {
+        "write": "deny",
+        "edit": "deny",
+        "bash": "deny"
       }
     }
-  }
-  // Custom tools are automatically loaded from .opencode/tools/
-  // See https://opencode.ai/docs/custom-tools for details.
+  },
+  "plugin": ["context-mode"]
 }
