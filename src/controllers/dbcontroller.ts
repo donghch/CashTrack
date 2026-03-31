@@ -40,7 +40,7 @@ const filterTransactions = async(env: Env, filter: Partial<NewTransaction>) => {
 }
 
 
-export default {
+export {
     getTransaction,
     createTransaction,
 }

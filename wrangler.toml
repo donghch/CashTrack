@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "expenditure"
 database_id = "5500f846-5453-434f-8418-3073cfe5077f"
-migrations_dir = "drizzle"
+migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "RECEIPT_IMAGES"
