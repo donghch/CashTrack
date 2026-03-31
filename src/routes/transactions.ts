@@ -1,18 +1,82 @@
 import { Hono } from "hono";
-import { getTransaction, createTransaction } from "../controllers/dbcontroller.js";
+import { getTransaction, createTransaction, filterTransactions } from "../controllers/dbcontroller.js";
 import { transactions } from "../model/db/schema.js";
 import type { ServerResponse } from "../model/types/response.js";
 import { ServerResponseCode } from "../model/types/response.js";
 import { StatusCodes } from "http-status-codes";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { TransactionFilterSchema } from "../model/types/request.js";
+import type { TransactionWithItems } from "../model/types/response.js";
 
 const transactionRoutes = new Hono();
 
 const newTransactionSchema = createInsertSchema(transactions);
 
-transactionRoutes.get("/", (c) => {
-  return c.json({ message: "List of transactions" });
+transactionRoutes.get("/", async (c) => {
+  // Parse and validate query parameters
+  const queryParams = c.req.query();
+  
+  // Convert string values to appropriate types
+  const parsedParams: any = {};
+  
+  // Type conversions
+  if (queryParams.limit) parsedParams.limit = parseInt(queryParams.limit, 10);
+  if (queryParams.offset) parsedParams.offset = parseInt(queryParams.offset, 10);
+  if (queryParams.minAmount) parsedParams.minAmount = parseInt(queryParams.minAmount, 10);
+  if (queryParams.maxAmount) parsedParams.maxAmount = parseInt(queryParams.maxAmount, 10);
+  if (queryParams.category) {
+    const cat = queryParams.category;
+    parsedParams.category = isNaN(Number(cat)) ? cat : parseInt(cat, 10);
+  }
+  if (queryParams.includeItems) {
+    parsedParams.includeItems = queryParams.includeItems === "true";
+  }
+  
+  // Copy other params
+  ["startDate", "endDate", "merchant", "currency", "sortBy", "sortOrder"].forEach(key => {
+    if (queryParams[key]) parsedParams[key] = queryParams[key];
+  });
+  
+  // Validate with Zod schema
+  const validationResult = TransactionFilterSchema.safeParse(parsedParams);
+  
+  if (!validationResult.success) {
+    const response: ServerResponse = {
+      code: ServerResponseCode.ERROR,
+      text: "Invalid query parameters",
+      data: validationResult.error.errors
+    };
+    return c.json(response, StatusCodes.BAD_REQUEST);
+  }
+  
+  try {
+    const filter = validationResult.data;
+    const { transactions: filteredTransactions, total } = await filterTransactions(c.env as Env, filter);
+    
+    const response: ServerResponse<TransactionWithItems[]> = {
+      code: ServerResponseCode.SUCCESS,
+      text: "Transactions retrieved successfully",
+      data: filteredTransactions,
+      pagination: {
+        total,
+        limit: filter.limit,
+        offset: filter.offset,
+        hasMore: (filter.offset + filter.limit) < total
+      }
+    };
+    
+    return c.json(response, StatusCodes.OK);
+  } catch (error) {
+    // Log error (using Pino in production)
+    console.error("Error filtering transactions:", error);
+    
+    const response: ServerResponse = {
+      code: ServerResponseCode.ERROR,
+      text: "Internal server error while retrieving transactions"
+    };
+    return c.json(response, StatusCodes.INTERNAL_SERVER_ERROR);
+  }
 });
 
 transactionRoutes.post("/", async (c) => {
@@ -30,7 +94,7 @@ transactionRoutes.post("/", async (c) => {
     };
     return c.json(response, StatusCodes.BAD_REQUEST);
   }
-  const parseResult = newTransactionSchema.safeParse(reqBody);
+  const parseResult = newTransactionSchema.safeParse(jsonBody);
 
   if (!parseResult.success) {
     const response: ServerResponse = {
