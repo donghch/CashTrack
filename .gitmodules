@@ -1,0 +1,3 @@
+[submodule "src/model/types"]
+	path = src/model/types
+	url = https://github.com/donghch/CashTrack-Types.git

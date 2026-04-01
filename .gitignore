@@ -3,3 +3,6 @@ node_modules
 .env
 .claude
 .wrangler
+node-compile-cache
+update-check
+data

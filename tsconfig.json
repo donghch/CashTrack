@@ -42,5 +42,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "exclude": ["drizzle.config.ts", "wrangler.toml", "dist"]
+  "exclude": ["drizzle.config.ts", "wrangler.toml", "vitest.config.ts", "dist", "src/test"]
 }
