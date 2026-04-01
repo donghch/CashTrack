@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { serve } from "@hono/node-server";
 
 /* routes */
 import transactionRoutes from "./routes/transactions.js";
@@ -19,4 +20,4 @@ app.route("/transactions", transactionRoutes);
 app.route("/auth", authRoutes);
 app.route("/ocr", ocrRoutes);
 
-export default app;
+serve(app);
