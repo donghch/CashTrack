@@ -7,6 +7,7 @@ export const transactions = sqliteTable(
 		id: integer("id").primaryKey({ autoIncrement: true }),
 		merchant: text("merchant").notNull(),
 		currency: text("currency").notNull(),
+		totalMajor: integer("total_major").notNull(),
 		totalMinor: integer("total_minor").notNull(),
 		transactionTime: text("transaction_time").notNull(),
 	},

@@ -4,3 +4,5 @@ node_modules
 .claude
 .wrangler
 node-compile-cache
+update-check
+data
