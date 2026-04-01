@@ -1,240 +1,230 @@
-# AGENTS.md - Expenditure Tracker Backend
+# Expenditure Tracker Backend - Agent Guidelines
 
-This file contains essential information for AI agents working on this codebase, including build commands, code style guidelines, and development workflows.
+## Project Overview
+TypeScript backend API using Hono framework, Drizzle ORM, and Cloudflare Workers. The project follows a modular structure with controllers, models, routes, and integration tests.
 
-## Build Commands
+## Build & Development Commands
 
+### Core Commands
 ```bash
-npm run build    # Compile TypeScript to dist/
-npm start        # Run compiled application (node dist/index.js)
+npm run build          # Compile TypeScript to dist/
+npm start             # Run compiled application
+npm run dev           # Start development server with wrangler
+npm test              # Run all tests with Vitest
 ```
 
-The TypeScript configuration (`tsconfig.json`) uses:
-- `rootDir`: `./src`
-- `outDir`: `./dist`
-- `target`: `esnext`
-- `module`: `nodenext`
-- `strict`: true
-- `verbatimModuleSyntax`: true
-- `isolatedModules`: true
-- Source maps and declaration files enabled
-- `exclude`: `["drizzle.config.ts", "wrangler.toml", "dist"]` (added to fix type checking)
-
-## Lint and Type Checking
-
-No linting tool (ESLint) is configured. Type checking is performed by:
-
+### Testing Commands
 ```bash
-npx tsc --noEmit    # Type check without emitting files
+npm test                              # Run all tests
+npm run test:integration              # Run integration tests only
+npm run test:integration:watch        # Run integration tests in watch mode
+npx vitest run src/test/unit/         # Run unit tests
+npx vitest run path/to/specific.test.ts  # Run single test file
+npx vitest --run --reporter=verbose   # Run with verbose output
 ```
 
-**Note**: `tsconfig.json` excludes configuration files outside `src/`, so type checking now works correctly.
-
-To add linting, consider ESLint with appropriate rules for consistent code style.
-
-## Test Commands
-
-No test framework is currently configured. The `npm test` script is a placeholder:
-
+### Database Commands
 ```bash
-npm test    # Currently echoes "Error: no test specified"
+npm run clear-db      # Apply D1 migrations locally
 ```
-
-To add tests, consider using Jest, Vitest, or Node's built-in test runner.
 
 ## Code Style Guidelines
 
-### Imports
-- Use ES module syntax (`import`/`export`)
-- Use double quotes for module specifiers: `import { Hono } from "hono";`
-- Group imports logically (external dependencies first, then internal modules)
-- Use `type` imports for types when appropriate (enforced by `verbatimModuleSyntax`)
+### TypeScript Configuration
+- Strict TypeScript enabled (`"strict": true`)
+- `noUncheckedIndexedAccess: true` - arrays require bounds checking
+- `exactOptionalPropertyTypes: true` - precise optional property handling
+- `verbatimModuleSyntax: true` - explicit import/export syntax
+- ES modules with `"module": "nodenext"`
+- Target: `"esnext"`
 
-### Formatting
-- Use **4-space indentation** (configured in `.prettierrc`)
-- Use semicolons at the end of statements
-- Let Prettier handle formatting (run `npx prettier --write .` if needed)
-- Maximum line length: not explicitly configured (default 80)
+### Formatting & Linting
+- Prettier configured with 4-space tabs (`.prettierrc`)
+- No ESLint configuration found - consider adding if needed
+- Run formatting: `npx prettier --write src/`
+
+### Import Patterns
+```typescript
+// Named imports from packages
+import { z } from "zod";
+import { Hono } from "hono";
+import { describe, it, expect } from "vitest";
+
+// Default imports for modules
+import axios from "axios";
+import fs from "fs";
+import path from "path";
+
+// Relative imports with .js extension (ES modules)
+import { getTestConfig } from "../client/test-config.js";
+import { transactions } from "../db/schema.js";
+```
+
+### Export Patterns
+```typescript
+// Default exports for main module functionality
+export default config;
+export default authRoutes;
+
+// Named exports for types, interfaces, constants
+export type Config = z.infer<typeof configSchema>;
+export interface ServerResponse<T = any> { ... }
+export enum ServerResponseCode { SUCCESS, ERROR }
+
+// Named exports for functions
+export function getConfigPath(): string { ... }
+```
 
 ### Naming Conventions
-- **Database tables**: `snake_case` plural (`transactions`, `items`, `item_categories`)
-- **Database columns**: `snake_case` (`total_minor`, `transaction_time`)
-- **TypeScript schema fields**: `camelCase` (`totalMinor`, `transactionTime`) mapping to snake_case columns
-- **Variables and functions**: `camelCase`
-- **Constants**: `UPPER_SNAKE_CASE` for global constants, otherwise `camelCase`
-- **Types and interfaces**: `PascalCase`
-
-### TypeScript Usage
-- Enable strict type checking (`strict: true` in tsconfig)
-- Use explicit types for function parameters and return values
-- Avoid `any`; use `unknown` or specific types
-- Use interfaces for object shapes, types for unions
-- Leverage TypeScript's structural typing where appropriate
+- **Interfaces/Types**: PascalCase (e.g., `TransactionWithItems`, `PaginatedResponse`)
+- **Variables/Functions**: camelCase (e.g., `getConfigPath`, `createDefaultConfig`)
+- **Constants**: UPPER_SNAKE_CASE for true constants, camelCase for configuration
+- **Files**: kebab-case for routes/controllers (e.g., `configcontroller.ts`, `auth.ts`)
+- **Directories**: kebab-case (e.g., `integration/suites/`)
 
 ### Error Handling
-- Use try/catch for synchronous operations that may throw
-- For async operations, use `try/catch` with `await` or `.catch()`
-- Create custom error classes for domain-specific errors
-- Log errors appropriately using the configured logging system (Pino)
-
-### Logging
-- Use Pino for structured logging
-- Import `pino` or `pino-http` as needed
-- Log at appropriate levels (`debug`, `info`, `warn`, `error`)
-
-### Database Schema (Drizzle ORM)
-- Define tables in `src/model/db/schema.ts`
-- Use Drizzle's `sqliteTable` function with proper column definitions
-- Map camelCase TypeScript field names to snake_case SQL column names
-- Define indexes for performance-critical columns
-- Use `relations` to define table relationships
-- Export tables and relations as named exports
-
-### API Design (Hono Framework)
-- Define routes using Hono's router methods (`app.get`, `app.post`, etc.)
-- Use typed context via Hono's generic parameters
-- Group related routes using Hono's `.basePath()` or separate route files
-- Implement proper HTTP status codes and error responses
-
-## Database Migrations
-
-```bash
-npx drizzle-kit generate    # Generate new migration based on schema changes
-npx drizzle-kit migrate     # Apply migrations to the database
+```typescript
+// Use try-catch with specific error type checking
+try {
+    const configContent = fs.readFileSync(configPath, "utf8");
+    const configJson = JSON.parse(configContent);
+    return configSchema.parse(configJson);
+} catch (error) {
+    if (error instanceof SyntaxError) {
+        throw new Error(`Invalid JSON: ${error.message}`);
+    }
+    if (error instanceof z.ZodError) {
+        const errorMessages = error.errors
+            .map((err) => `${err.path.join(".")}: ${err.message}`)
+            .join(", ");
+        throw new Error(`Validation failed: ${errorMessages}`);
+    }
+    throw new Error(`Failed: ${error instanceof Error ? error.message : String(error)}`);
+}
 ```
 
-Configuration in `drizzle.config.ts`:
-- Schema: `./src/model/db/schema.ts`
-- Output: `./migrations`
-- Dialect: `sqlite`
-- Driver: `d1-http` (Cloudflare D1)
-- Requires Cloudflare credentials (accountId, databaseId, token)
+### API Response Structure
+```typescript
+// Standard response interface
+export interface ServerResponse<T = any> {
+    code: ServerResponseCode;
+    text: string;
+    data?: T;
+    pagination?: {
+        total: number;
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+}
 
-## Cloudflare Workers
-
-```bash
-npx wrangler dev    # Start local development server
-npx wrangler deploy # Deploy to Cloudflare Workers
+// Paginated responses
+export interface PaginatedResponse<T> {
+    data: T[];
+    pagination: {
+        total: number;
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+    };
+}
 ```
 
-Configuration in `wrangler.toml`:
-- Name: `cash-track`
-- Main: `src/index.ts`
-- Compatibility date: `2026-03-01`
-- D1 database binding: `DB`
-- Database ID: `5500f846-5453-434f-8418-3073cfe5077f`
-- Migrations directory: `drizzle`
+### Testing Patterns
+```typescript
+// Test structure with Vitest
+import { describe, it, expect } from "vitest";
+import axios from "axios";
 
-## Project Structure
+describe("POST /auth - Authentication", () => {
+    it("should return success without password parameter", async () => {
+        const config = getTestConfig();
+        const response = await axios.post(`${config.baseUrl}/auth`);
+        
+        expect(response.status).toBe(200);
+        expect(response.data).toHaveProperty("message");
+        expect(response.data.message).toBe("User login");
+    });
+});
 
-- `src/` - Source code
-  - `index.ts` - Main application entry point
-  - `model/` - Data models and types
-    - `db/schema.ts` - Database schema definitions
-    - `types/` - Request/response types
-  - `controllers/` - Business logic
-  - `routes/` - API route definitions
-- `migrations/` - Database migration SQL files
-- `dist/` - Compiled output (gitignored)
-- `drizzle/` - Drizzle migrations config
-- Configuration files: `package.json`, `tsconfig.json`, `drizzle.config.ts`, `wrangler.toml`
+// Use factories for test data
+import { createTransaction } from "../factories/transaction-factory.js";
+```
 
-## Environment Variables
+### Database Patterns
+- Use Drizzle ORM for database operations
+- Schema definitions in `src/model/db/schema.ts`
+- Use `typeof table.$inferSelect` for type inference
+- Database controllers in `src/controllers/db/`
 
-Required in `.env` file (gitignored):
-- `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID for D1
-- `CLOUDFLARE_D1_DATABASE_ID` - D1 database ID
-- `CLOUDFLARE_D1_TOKEN` - API token for D1 access
-- `CLOUDFLARE_R2_ACCESS_KEY_ID` - R2 storage access key
-- `CLOUDFLARE_R2_SECRET_ACCESS_KEY` - R2 storage secret key
-- `DEEPSEEK_API_KEY` - API key for DeepSeek LLM/OCR services
-- `OCR_API_KEY` - Alternative OCR service API key (optional)
+### Route Patterns
+```typescript
+import { Hono } from "hono";
+
+const authRoutes = new Hono();
+
+authRoutes.post("/", (c) => {
+    const saltedPwd = c.req.query("saltedPwd");
+    return c.json({ message: "User login" });
+});
+
+export default authRoutes;
+```
+
+### File Organization
+```
+src/
+├── controllers/     # Business logic and data access
+│   ├── configcontroller.ts
+│   └── db/         # Database controllers
+├── model/          # Data models and types
+│   ├── db/         # Database schemas
+│   └── types/      # TypeScript interfaces
+├── routes/         # API route definitions
+└── test/           # Test files
+    ├── integration/ # Integration tests
+    │   ├── client/  # Test clients
+    │   ├── factories/ # Test data factories
+    │   ├── suites/  # Test suites by feature
+    │   └── utils/   # Test utilities
+    └── unit/       # Unit tests
+```
 
 ## Development Workflow
 
-1. **Local Development**: Use `npx wrangler dev` for local development with Cloudflare Workers simulation
-2. **Database Changes**: Update `schema.ts`, then run `npx drizzle-kit generate` to create migration
-3. **Type Checking**: Run `npx tsc --noEmit` to verify types
-4. **Building**: Run `npm run build` to compile TypeScript
-5. **Testing**: Add tests as needed (no framework currently configured)
-6. **Deployment**: Run `npx wrangler deploy` to deploy to Cloudflare
+1. **Before making changes**: Run `npm test` to ensure existing tests pass
+2. **When adding features**: Write tests in appropriate test suite
+3. **When modifying code**: Follow existing patterns and conventions
+4. **Before committing**: Run `npm run build` to check TypeScript compilation
+5. **Testing**: Use `npm run test:integration` for integration tests
 
-## Additional Notes
+## Context-Mode Routing Rules
 
-- **Monetary Values**: Store as integer minor units (e.g., cents) to avoid floating-point rounding errors
-- **Timestamps**: Use ISO-8601 text format (e.g., `2026-03-22T11:08:20-07:00`)
-- **State Management**: The application is stateless; state is stored in D1 database and R2 storage
-- **Authentication**: Not yet implemented; planned for future development
-- **Error Responses**: Use consistent error response format across API endpoints
-- **Cursor/Copilot Rules**: No Cursor rules (`.cursor/rules/` or `.cursorrules`) or Copilot rules (`.github/copilot-instructions.md`) found
+### BLOCKED Commands
+- `curl` / `wget` - Use `context-mode_ctx_fetch_and_index()` instead
+- Inline HTTP calls - Use `context-mode_ctx_execute()` sandbox
+- Direct web fetching - Use fetch-and-index pattern
 
-## References
+### REDIRECTED Tools
+- Shell (>20 lines output) - Use `context-mode_ctx_batch_execute()` or `context-mode_ctx_execute()`
+- File reading for analysis - Use `context-mode_ctx_execute_file()`
+- grep/search large results - Use `context-mode_ctx_execute()` sandbox
 
-- [Project Memory](./PROJECT_MEMORY.md) - Detailed project overview and design decisions
-- [Design Document](https://www.notion.so/Expenditure-Tracker-3235e7062f428066bdacd66ba9417cb3) - Notion design document
-- [Drizzle ORM Documentation](https://orm.drizzle.team/)
-- [Hono Documentation](https://hono.dev/)
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
+### Tool Selection Hierarchy
+1. **GATHER**: `context-mode_ctx_batch_execute()` - Primary tool for batch operations
+2. **FOLLOW-UP**: `context-mode_ctx_search()` - Query indexed content
+3. **PROCESSING**: `context-mode_ctx_execute()` - Sandbox execution
+4. **WEB**: `context-mode_ctx_fetch_and_index()` - Fetch and index web content
+5. **INDEX**: `context-mode_ctx_index()` - Store content in knowledge base
 
----
+### Output Constraints
+- Keep responses under 500 words
+- Write artifacts to FILES - never return as inline text
+- Use descriptive source labels for indexed content
 
-*This file should be updated as the project evolves. Last updated: 2026-03-30*
-
-# context-mode — MANDATORY routing rules
-
-You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
-
-## BLOCKED commands — do NOT attempt these
-
-### curl / wget — BLOCKED
-Any shell command containing `curl` or `wget` will be intercepted and blocked by the context-mode plugin. Do NOT retry.
-Instead use:
-- `context-mode_ctx_fetch_and_index(url, source)` to fetch and index web pages
-- `context-mode_ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
-
-### Inline HTTP — BLOCKED
-Any shell command containing `fetch('http`, `requests.get(`, `requests.post(`, `http.get(`, or `http.request(` will be intercepted and blocked. Do NOT retry with shell.
-Instead use:
-- `context-mode_ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
-
-### Direct web fetching — BLOCKED
-Do NOT use any direct URL fetching tool. Use the sandbox equivalent.
-Instead use:
-- `context-mode_ctx_fetch_and_index(url, source)` then `context-mode_ctx_search(queries)` to query the indexed content
-
-## REDIRECTED tools — use sandbox equivalents
-
-### Shell (>20 lines output)
-Shell is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands.
-For everything else, use:
-- `context-mode_ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
-- `context-mode_ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
-
-### File reading (for analysis)
-If you are reading a file to **edit** it → reading is correct (edit needs content in context).
-If you are reading to **analyze, explore, or summarize** → use `context-mode_ctx_execute_file(path, language, code)` instead. Only your printed summary enters context.
-
-### grep / search (large results)
-Search results can flood context. Use `context-mode_ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
-
-## Tool selection hierarchy
-
-1. **GATHER**: `context-mode_ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
-2. **FOLLOW-UP**: `context-mode_ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
-3. **PROCESSING**: `context-mode_ctx_execute(language, code)` | `context-mode_ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
-4. **WEB**: `context-mode_ctx_fetch_and_index(url, source)` then `context-mode_ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
-5. **INDEX**: `context-mode_ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
-
-## Output constraints
-
-- Keep responses under 500 words.
-- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
-- When indexing content, use descriptive source labels so others can `search(source: "label")` later.
-
-## ctx commands
-
-| Command | Action |
-|---------|--------|
-| `ctx stats` | Call the `stats` MCP tool and display the full output verbatim |
-| `ctx doctor` | Call the `doctor` MCP tool, run the returned shell command, display as checklist |
-| `ctx upgrade` | Call the `upgrade` MCP tool, run the returned shell command, display as checklist |
+## Quality Assurance
+- Always run `npm run build` after code changes
+- Ensure tests pass with `npm test`
+- Follow TypeScript strict mode requirements
+- Maintain consistent formatting with Prettier
+- Use Zod for runtime validation where appropriate
