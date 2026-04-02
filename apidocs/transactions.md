@@ -2,6 +2,11 @@
 
 Base path: /transactions
 
+Related resources:
+
+- /items
+- /item-categories
+
 ## Response envelope
 
 All endpoints return a response envelope with this shape:
@@ -22,9 +27,9 @@ Returns a paginated list of transactions, with optional filtering and sorting.
 ### Query parameters
 
 - startDate: optional string
-  - ISO datetime
+  - ISO datetime (with or without timezone)
 - endDate: optional string
-  - ISO datetime
+  - ISO datetime (with or without timezone)
 - merchant: optional string
   - Case-insensitive partial match
 - currency: optional string
@@ -67,7 +72,8 @@ Example:
         "currency": "USD",
         "totalMajor": 12,
         "totalMinor": 34,
-        "transactionTime": "2026-03-22T11:08:20-07:00"
+        "transactionTime": "2026-03-22T11:08:20",
+        "transactionTimezone": "-07:00"
       },
       "items": [
         {
@@ -122,8 +128,11 @@ JSON object with required fields:
 - totalMinor: integer
   - Required, 0 to 99
 - transactionTime: string
-  - Required ISO 8601 datetime with timezone offset
-  - Example: 2026-03-22T11:08:20-07:00
+  - Required ISO 8601 datetime without timezone
+  - Example: 2026-03-22T11:08:20
+- transactionTimezone: string
+  - Required UTC offset
+  - Example: -07:00 or +05:30
 
 Example:
 
@@ -133,7 +142,8 @@ Example:
   "currency": "USD",
   "totalMajor": 12,
   "totalMinor": 34,
-  "transactionTime": "2026-03-22T11:08:20-07:00"
+  "transactionTime": "2026-03-22T11:08:20",
+  "transactionTimezone": "-07:00"
 }
 ```
 
@@ -177,7 +187,8 @@ Status: 200
     "currency": "USD",
     "totalMajor": 12,
     "totalMinor": 34,
-    "transactionTime": "2026-03-22T11:08:20-07:00"
+    "transactionTime": "2026-03-22T11:08:20",
+    "transactionTimezone": "-07:00"
   }
 }
 ```

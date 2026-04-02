@@ -136,10 +136,13 @@ transactionRoutes.post("/", async (c) => {
     const data = parseResult.data;
 
     try {
-        await createTransaction(data);
+        const result = await createTransaction(data);
         const response: ServerResponse = {
             code: ServerResponseCode.SUCCESS,
             text: "Transaction created successfully",
+            data: {
+                id: Number(result.lastInsertRowid),
+            }
         };
         return c.json(response, StatusCodes.CREATED);
     } catch (error) {
@@ -155,6 +158,7 @@ transactionRoutes.post("/", async (c) => {
         const response: ServerResponse = {
             code: ServerResponseCode.ERROR,
             text: "Internal server error while creating transaction",
+            data: error instanceof Error ? error.message : String(error),
         };
         return c.json(response, StatusCodes.INTERNAL_SERVER_ERROR);
     }

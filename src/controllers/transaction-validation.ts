@@ -27,8 +27,9 @@ export class FilterTransactionsValidationError extends Error {
     }
 }
 
-const iso8601OffsetRegex =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?[+-]\d{2}:\d{2}$/;
+const iso8601NoOffsetRegex =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/;
+const utcOffsetRegex = /^[+-]\d{2}:\d{2}$/;
 
 const createTransactionInputSchema = z
     .object({
@@ -59,12 +60,19 @@ const createTransactionInputSchema = z
             .string()
             .trim()
             .refine(
-                (value) => iso8601OffsetRegex.test(value),
-                "transactionTime must be ISO 8601 with timezone offset (e.g. 2026-03-22T11:08:20-07:00)",
+                (value) => iso8601NoOffsetRegex.test(value),
+                "transactionTime must be ISO 8601 without timezone (e.g. 2026-03-22T11:08:20)",
             )
             .refine(
                 (value) => Number.isFinite(Date.parse(value)),
                 "transactionTime must be a valid datetime",
+            ),
+        transactionTimezone: z
+            .string()
+            .trim()
+            .refine(
+                (value) => utcOffsetRegex.test(value),
+                "transactionTimezone must be a UTC offset (e.g. -07:00 or +05:30)",
             ),
     })
     .strict();

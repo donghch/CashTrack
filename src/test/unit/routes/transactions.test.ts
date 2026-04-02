@@ -1,11 +1,13 @@
 import axios from "axios";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { tr } from "zod/v4/locales"
 
 const baseUrl = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 
 const api = axios.create({
     baseURL: baseUrl,
     timeout: 10000,
+    withCredentials: true, 
     validateStatus: () => true,
 });
 
@@ -15,11 +17,12 @@ type CreateTransactionBody = {
     totalMajor: number;
     totalMinor: number;
     transactionTime: string;
+    transactionTimezone: string;
 };
 
 const createdTransactionIds: number[] = [];
 
-const nowWithOffset = (): string => {
+const nowWithOffset = (): { transactionTime: string; transactionTimezone: string } => {
     const now = new Date();
     const offsetMinutes = -now.getTimezoneOffset();
     const sign = offsetMinutes >= 0 ? "+" : "-";
@@ -29,20 +32,25 @@ const nowWithOffset = (): string => {
     const isoNoZ = new Date(now.getTime() - now.getMilliseconds())
         .toISOString()
         .replace("Z", "");
-    return `${isoNoZ}${sign}${hours}:${minutes}`;
+    return {
+        transactionTime: isoNoZ,
+        transactionTimezone: `${sign}${hours}:${minutes}`
+    };
 };
 
 const createTransactionBody = (
     overrides: Partial<CreateTransactionBody> = {},
 ): CreateTransactionBody => {
     const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+    const { transactionTime, transactionTimezone } = nowWithOffset();
 
     return {
         merchant: `UT_MERCHANT_${uniqueSuffix}`,
         currency: "USD",
         totalMajor: 12,
         totalMinor: 34,
-        transactionTime: nowWithOffset(),
+        transactionTime,
+        transactionTimezone,
         ...overrides,
     };
 };

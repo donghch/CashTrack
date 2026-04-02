@@ -10,6 +10,7 @@ export const transactions = sqliteTable(
 		totalMajor: integer("total_major").notNull(),
 		totalMinor: integer("total_minor").notNull(),
 		transactionTime: text("transaction_time").notNull(),
+		transactionTimezone: text("transaction_timezone").notNull(),
 	},
 	(table) => [index("transactions_transaction_time_idx").on(table.transactionTime)],
 );
