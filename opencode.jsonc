@@ -15,6 +15,11 @@
       "type": "local",
       "command": ["context-mode"],
       "enabled": true
+    },
+    "notion": {
+      "type": "remote",
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": true
     }
   },
   "agent": {
